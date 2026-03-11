@@ -13,11 +13,11 @@ import (
 )
 
 type MenuSettings struct {
+	Header         string // message to display above the struct menu
 	NavCursorChar  string // cursor during navigation
 	EditCursorChar string // cursor during edit
 	IBeamChar      string // character shown right of text during edit
 	TabAfterEntry  bool   // whether or not to jump to the next field after tabAfterEntry
-	Header         string // message to display above the struct menu
 }
 
 type FieldKind int
@@ -29,17 +29,17 @@ const (
 )
 
 type menuField struct {
-	kind FieldKind // value assigned to field
-	s    string    // possible string value
-	b    bool      // possible bool value
-	i    int       // possible int value
-
 	editBuf string // buffer for editing this field
 	errBuf  string // potential error from bad input
 
 	name   string // name of the struct field
 	smName string // description pulled from smname tag
 	smDes  string // description pulled from smdes tag
+
+	kind FieldKind // value assigned to field
+	s    string    // possible string value
+	i    int       // possible int value
+	b    bool      // possible bool value
 }
 
 func (f *menuField) handleChar(char string) {
