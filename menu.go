@@ -213,9 +213,15 @@ func InitialTModelStructMenu(structObj any, fieldList []string, asBlacklist bool
 	}
 
 	for i := 0; i < t.NumField(); i++ {
-		j, ok := orderedFields[i]
-		if !ok {
-			return TModelStructMenu{}, fmt.Errorf("could not resolve struct field to display by declaration index %d", i)
+		var j int
+		if len(orderedFields) == 0 {
+			j = i
+		} else {
+			var ok bool
+			j, ok = orderedFields[i]
+			if !ok {
+				return TModelStructMenu{}, fmt.Errorf("could not resolve struct field to display by declaration index %d", i)
+			}
 		}
 		field := t.Field(j)
 
