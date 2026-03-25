@@ -17,12 +17,11 @@ type applicationForm struct {
 	FirstName        string `smname:"First Name" idx:"0"`
 	LastName         string `smname:"Last Name" idx:"1"`
 	Email            string `idx:"2"`
-	Country          string `smname:"Country" idx:"5"`
-	Location         string `smname:"Location (City)" idx:"6"`
-	BlacklistedField string `idx:"8"`
+	Country          string `smname:"Country" idx:"4"`
+	Location         string `smname:"Location (City)" idx:"5"`
+	BlacklistedField string `idx:"7"`
 	PhoneNo          int    `smname:"Phone" idx:"3"`
-	ConsentToSMS     bool   `smname:"Phone" idx:"4"`
-	CanTravel        bool   `smname:"Travel" smdes:"Can you travel for work?" idx:"7"`
+	CanTravel        bool   `smname:"Travel" smdes:"Can you travel for work?" idx:"6"`
 }
 
 func main() {
