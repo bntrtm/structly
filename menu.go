@@ -5,6 +5,7 @@ package gostructui
 import (
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"slices"
 	"strconv"
@@ -206,9 +207,17 @@ func InitialTModelStructMenu(structObj any, fieldList []string, asBlacklist bool
 	} else {
 		newModel.Settings.Init()
 	}
+	orderedFields, err := getStructIdxMap(t)
+	if err != nil {
+		return TModelStructMenu{}, err
+	}
 
 	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
+		j, ok := orderedFields[i]
+		if !ok {
+			return TModelStructMenu{}, fmt.Errorf("could not resolve struct field to display by declaration index %d", i)
+		}
+		field := t.Field(j)
 
 		if len(fieldList) != 0 {
 			if asBlacklist {
@@ -224,7 +233,7 @@ func InitialTModelStructMenu(structObj any, fieldList []string, asBlacklist bool
 
 		fieldVal := v.FieldByName(field.Name)
 		if !fieldVal.CanSet() {
-			fmt.Printf("Warning: Field '%s' left unexposed (cannot be set; unexported or not addressable).\n", field.Name)
+			log.Printf("Warning: Field '%s' left unexposed (cannot be set; unexported or not addressable).\n", field.Name)
 			continue
 		}
 
