@@ -41,7 +41,7 @@ func main() {
 	// whitelisted fields, and any custom settings.
 	configEditMenu, err := gostructui.InitialTModelStructMenu(&newApplication, []string{"BlacklistedField"}, true, customMenuSettings)
 	if err != nil {
-		log.Fatal("Trouble generating the application.")
+		log.Fatal("Trouble generating the application: ", err)
 	}
 	// STEP 5: Use the menu---a bubbletea model---with the bubbletea package!
 	// Here, we capture the result (our struct with user-entered values)
