@@ -1,6 +1,4 @@
-// Package gostructui provides bubbletea models that make it easy to
-// expose forms and menus directly to CLI users.
-package gostructui
+package menu
 
 import (
 	"errors"
@@ -8,125 +6,9 @@ import (
 	"log"
 	"reflect"
 	"slices"
-	"strconv"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
-
-type MenuSettings struct {
-	Header         string // message to display above the struct menu
-	NavCursorChar  string // cursor during navigation
-	EditCursorChar string // cursor during edit
-	IBeamChar      string // character shown right of text during edit
-	TabAfterEntry  bool   // whether or not to jump to the next field after tabAfterEntry
-}
-
-type FieldKind int
-
-const (
-	FieldString FieldKind = iota
-	FieldBool
-	FieldInt
-)
-
-type menuField struct {
-	editBuf string // buffer for editing this field
-	errBuf  string // potential error from bad input
-
-	name   string // name of the struct field
-	smName string // description pulled from smname tag
-	smDes  string // description pulled from smdes tag
-
-	kind FieldKind // value assigned to field
-	s    string    // possible string value
-	i    int       // possible int value
-	b    bool      // possible bool value
-}
-
-func (f *menuField) handleChar(char string) {
-	switch f.kind {
-	case FieldInt:
-		if (char >= "0" && char <= "9") || (char == "-" && len(f.editBuf) == 0) {
-			f.editBuf += string(char)
-		}
-	case FieldString:
-		f.editBuf += string(char)
-	case FieldBool:
-		switch char {
-		case "t", "1":
-			f.b = true
-		case "f", "0":
-			f.b = false
-		case "right", "left", "l", "h":
-			f.b = !f.b
-		}
-	}
-}
-
-func (f *menuField) handleBackspace() {
-	if len(f.editBuf) == 0 {
-		return
-	}
-	f.editBuf = f.editBuf[:len(f.editBuf)-1]
-}
-
-func (f *menuField) render(editing bool, iBeamChar string) string {
-	switch f.kind {
-	case FieldInt:
-		if editing {
-			return f.editBuf + iBeamChar
-		}
-		return strconv.Itoa(f.i)
-	case FieldString:
-		if editing {
-			return f.editBuf + iBeamChar
-		}
-		return f.s
-	case FieldBool:
-		if editing {
-			if f.b {
-				return "[t] ||  f "
-			}
-			return " t  || [f]"
-		}
-		return fmt.Sprintf("%v", f.b)
-	default:
-		return ""
-	}
-}
-
-func (f *menuField) commitEdit() {
-	switch f.kind {
-	case FieldInt:
-		if f.editBuf == "" || f.editBuf == "-" {
-			f.i = 0
-			return
-		}
-		v, err := strconv.Atoi(f.editBuf)
-		if err != nil {
-			f.errBuf = err.Error()
-			return
-		}
-		f.i = v
-	case FieldString:
-		f.s = f.editBuf
-	}
-
-	f.editBuf = ""
-	f.errBuf = ""
-}
-
-// getFieldName returns a name for the menu field.
-// If an override name was provided via the smname tag
-// (e.g. for human readability or foramtting), that will
-// be returned. Otherwise, the name of the struct field
-// is returned.
-func (f *menuField) getFieldName() string {
-	if f.smName != "" {
-		return f.smName
-	}
-	return f.name
-}
 
 // TModelStructMenu is a bubbletea model that can be used to expose
 // primitive struct fields to end users for input,
@@ -138,20 +20,7 @@ type TModelStructMenu struct {
 	cursor         int  // which field our cursor is pointing at
 	isEditingValue bool // tracks state of field editing
 	QuitWithCancel bool // can be used to communicate whether changes ought be saved
-	Settings       MenuSettings
-}
-
-// Init initializes the menu settings with default values.
-// When using custom settings, this should be called first,
-// before then overriding specific default values with
-// those desired.
-func (m *MenuSettings) Init() {
-	*m = MenuSettings{
-		IBeamChar:      "|",
-		NavCursorChar:  "> ",
-		EditCursorChar: ">>",
-		TabAfterEntry:  true,
-	}
+	Options        MenuOptions
 }
 
 // incrCursor increases the field index the user is focused on
@@ -181,7 +50,7 @@ func (m *TModelStructMenu) getFieldUnderCursor() *menuField {
 // InitialTModelStructMenu creates a new struct menu from the given parameters.
 // If customSettings are not provided, the menu will fall back to defaults.
 // If using custom menu settings, first initialize them with the setDefaults() method.
-func InitialTModelStructMenu(structObj any, fieldList []string, asBlacklist bool, customSettings *MenuSettings) (TModelStructMenu, error) {
+func InitialTModelStructMenu(structObj any, fieldList []string, asBlacklist bool, customSettings *MenuOptions) (TModelStructMenu, error) {
 	// if fieldList is empty, all fields are exposed to users; otherwise, it is used as a whitelist.
 	// if bool parameter 'asBlacklist' is 'true', the fieldList is used as a blacklist instead of a whitelist.
 	t := reflect.TypeOf(structObj)
@@ -203,9 +72,9 @@ func InitialTModelStructMenu(structObj any, fieldList []string, asBlacklist bool
 	}
 
 	if customSettings != nil {
-		newModel.Settings = *customSettings
+		newModel.Options = *customSettings
 	} else {
-		newModel.Settings.Init()
+		newModel.Options.Init()
 	}
 	orderedFields, err := getStructIdxMap(t)
 	if err != nil {
@@ -322,7 +191,7 @@ func (m TModelStructMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				f.commitEdit()
 				m.isEditingValue = false
-				if m.Settings.TabAfterEntry {
+				if m.Options.TabAfterEntry {
 					m.decrCursor()
 				}
 			}
@@ -366,8 +235,8 @@ func (m TModelStructMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m TModelStructMenu) View() string {
 	var s string
 	// Add the header, if it exists
-	if m.Settings.Header != "" {
-		s = m.Settings.Header + "\n"
+	if m.Options.Header != "" {
+		s = m.Options.Header + "\n"
 	}
 	s += "\n"
 
@@ -382,7 +251,7 @@ func (m TModelStructMenu) View() string {
 	// for formatting, get longest cursor string and build
 	// the empty version of the cursor based on its length
 	cursorEmpty := ""
-	for _, cursor := range []string{m.Settings.NavCursorChar, m.Settings.EditCursorChar} {
+	for _, cursor := range []string{m.Options.NavCursorChar, m.Options.EditCursorChar} {
 		if len(cursor) > len(cursorEmpty) {
 			cursorEmpty = ""
 			for range cursor {
@@ -398,14 +267,14 @@ func (m TModelStructMenu) View() string {
 		cursor := "  " // no cursor
 		if m.cursor == i {
 			if m.isEditingValue {
-				cursor = m.Settings.EditCursorChar
+				cursor = m.Options.EditCursorChar
 			} else {
-				cursor = m.Settings.NavCursorChar
+				cursor = m.Options.NavCursorChar
 			}
 		}
 
 		// string represenation of field value
-		value := f.render(m.isEditingValue && m.cursor == i, m.Settings.IBeamChar)
+		value := f.render(m.isEditingValue && m.cursor == i, m.Options.IBeamChar)
 		s += fmt.Sprintf("%s ⟦ %-*s ⟧: %s\n", cursor, maxFieldName, f.getFieldName(), value)
 	}
 

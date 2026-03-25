@@ -22,7 +22,17 @@ Right now, the only user-editable fields are:
 
 The repo contains an example of how to use the package within `./example/default/main.go`. Let's walk through it!
 
-### Step 1: Establish the struct you wish to expose to the user
+### Step 1: Import the menu package
+
+```bash
+go get github.com/bntrtm/gostructui
+```
+
+```go
+import "github.com/bntrtm/gostructui/menu"
+```
+
+### Step 2: Establish the struct you wish to expose to the user
 
 In this struct, we build out a list of potential fields on a theoretical
 job application to illustrate the idea.
@@ -50,23 +60,24 @@ type applicationForm struct {
 }
 ```
 
-### Step 2: Choose custom settings to apply to your menu, if you desire
+### Step 3: Choose custom options to apply to your menu, if you desire
 
-There are a number of custom settings we could apply to our menu, such as
+There are a number of custom options we could apply to our menu, such as
 changing the ibeam cursor rendered during string input, or what the field
 cursor might look like.
+
 Here, we write a custom header to render during form interaction.
-Because we're using custom settings, we will have to initialize them
+Because we're using custom options, we will have to initialize them
 before setting any of the values on them.
-_Never forget to do this! Zero values for menu settings are NOT the defaults._
+_Never forget to do this! Zero values for menu options are NOT the defaults._
 
 ```go
- customMenuSettings := &gostructui.MenuSettings{}
- customMenuSettings.Init()
- customMenuSettings.Header = "Apply for this job: "
+ customMenuOptions := &menu.MenuOptions{}
+ customMenuOptions.Init()
+ customMenuOptions.Header = "Apply for this job: "
 ```
 
-### Step 3: Provide a struct to use during menu input
+### Step 4: Provide a struct to use during menu input
 
 Of course, you'll need a struct to expose to your CLI users!
 Here, we simply declare an empty one, but don't worry: if you need to provide a struct
@@ -77,22 +88,24 @@ intact, showing them to users as existing values within the field.
  newApplication := applicationForm{}
 ```
 
-### Step 4: Initialize a menu
+### Step 5: Initialize a menu
 
 Provide a pointer to your struct, a list of fields used as a whitelist or blacklist, and any
-custom settings. Hey, there's our `BlacklistedField` option we set earlier! See how our
+custom options.
+
+Hey, there's our `BlacklistedField` option we set earlier! See how our
 argument passed to the `asBlacklist` parameter is set to `true`? It means that any fields
 with the names given within the string slice to the left will be hidden from users. You can
 see it in the demo above; the field doesn't show up!
 
 ```go
-configEditMenu, err := gostructui.InitialTModelStructMenu(&newApplication, []string{"BlacklistedField"}, true, customMenuSettings)
+configEditMenu, err := gostructui.InitialTModelStructMenu(&newApplication, []string{"BlacklistedField"}, true, customMenuOptions)
  if err != nil {
   log.Fatal("Trouble generating the application.")
  }
 ```
 
-### Step 5: Use the menu with the bubbletea package
+### Step 6: Use the menu with the bubbletea package
 
 The menu is a bubbletea model! That is, it implements the bubbletea package!
 We're now ready to run it through bubbletea and expose the menu to users to capture

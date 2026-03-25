@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/bntrtm/gostructui"
+	"github.com/bntrtm/gostructui/menu"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -25,11 +25,11 @@ type applicationForm struct {
 }
 
 func main() {
-	// STEP 2: Choose custom settings to apply to your menu, if you desire.
-	customMenuSettings := &gostructui.MenuSettings{}
-	// Ensure that if you use custom settings, you initialize them first!
-	customMenuSettings.Init()
-	customMenuSettings.Header = "Apply for this job: "
+	// STEP 2: Choose custom options to apply to your menu, if you desire.
+	customMenuOptions := &menu.MenuOptions{}
+	// Ensure that if you use custom options, you initialize them first!
+	customMenuOptions.Init()
+	customMenuOptions.Header = "Apply for this job: "
 
 	// STEP 3: Provide a struct to use.
 	// Don't worry, if you need to provide a struct with non-zero
@@ -38,8 +38,8 @@ func main() {
 	newApplication := applicationForm{}
 	// STEP 4: Initialize a menu!
 	// Provide a pointer to your struct, blacklisted or
-	// whitelisted fields, and any custom settings.
-	configEditMenu, err := gostructui.InitialTModelStructMenu(&newApplication, []string{"BlacklistedField"}, true, customMenuSettings)
+	// whitelisted fields, and any custom options.
+	configEditMenu, err := menu.InitialTModelStructMenu(&newApplication, []string{"BlacklistedField"}, true, customMenuOptions)
 	if err != nil {
 		log.Fatal("Trouble generating the application: ", err)
 	}
@@ -50,11 +50,11 @@ func main() {
 	if entry, err := p.Run(); err != nil {
 		log.Fatal("Trouble generating the application.")
 	} else {
-		if entry.(gostructui.TModelStructMenu).QuitWithCancel {
+		if entry.(menu.TModelStructMenu).QuitWithCancel {
 			fmt.Printf("Canceled application.\n")
 			os.Exit(0)
 		} else {
-			err = entry.(gostructui.TModelStructMenu).ParseStruct(&newApplication)
+			err = entry.(menu.TModelStructMenu).ParseStruct(&newApplication)
 			if err != nil {
 				log.Fatal("Trouble generating the application.")
 			}

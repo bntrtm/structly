@@ -1,4 +1,4 @@
-package gostructui
+package menu
 
 import (
 	"maps"
