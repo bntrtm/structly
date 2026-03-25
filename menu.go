@@ -57,7 +57,7 @@ func (f *menuField) handleChar(char string) {
 			f.b = true
 		case "f", "0":
 			f.b = false
-		case "right", "left":
+		case "right", "left", "l", "h":
 			f.b = !f.b
 		}
 	}
