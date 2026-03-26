@@ -10,46 +10,38 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// TModelStructMenu is a bubbletea model that can be used to expose
+type state struct {
+	cursor         *cursor // reference to cursor for handling navigation
+	isEditingValue bool    // tracks state of field editing
+}
+
+type EndState struct {
+	QuitWithCancel bool // can be used to communicate whether changes ought be saved
+}
+
+// Model is a menu that can be used to expose
 // primitive struct fields to end users for input,
 // as if they were elements of a menu.
-type TModelStructMenu struct {
+type Model struct {
 	// MENU STATE
 	// fields which can be edited; populated dynamically
-	menuFields     []menuField
-	cursor         int  // which field our cursor is pointing at
-	isEditingValue bool // tracks state of field editing
-	QuitWithCancel bool // can be used to communicate whether changes ought be saved
-	Options        MenuOptions
+	menuFields []menuField
+	options    MenuOptions
+	state      *state
+	EndState   EndState
 }
 
-// incrCursor increases the field index the user is focused on
-func (m *TModelStructMenu) incrCursor() {
-	if m.cursor > 0 {
-		m.getFieldUnderCursor().errBuf = ""
-		m.cursor--
-	}
-}
-
-// decrCursor decreases the field index the user is focused on
-func (m *TModelStructMenu) decrCursor() {
-	m.getFieldUnderCursor().errBuf = ""
-	if m.cursor < len(m.menuFields)-1 {
-		m.cursor++
-	}
-}
-
-func (m *TModelStructMenu) getFieldAtIndex(i int) *menuField {
+func (m *Model) getFieldAtIndex(i int) *menuField {
 	return &m.menuFields[i]
 }
 
-func (m *TModelStructMenu) getFieldUnderCursor() *menuField {
-	return m.getFieldAtIndex(m.cursor)
+func (m *Model) getFieldUnderCursor() *menuField {
+	return m.state.cursor.under()
 }
 
-// InitialTModelStructMenu creates a new struct menu from the given parameters.
+// NewMenu creates a new struct menu from the given parameters.
 // If customOptions are not provided, the menu will fall back to defaults.
-func InitialTModelStructMenu(structObj any, fieldList []string, asBlacklist bool, customOptions *MenuOptions) (InitialTModelStructMenu, error) {
+func NewMenu(structObj any, fieldList []string, asBlacklist bool, customOptions *MenuOptions) (Model, error) {
 	// if fieldList is empty, all fields are exposed to users; otherwise, it is used as a whitelist.
 	// if bool parameter 'asBlacklist' is 'true', the fieldList is used as a blacklist instead of a whitelist.
 	t := reflect.TypeOf(structObj)
@@ -58,16 +50,21 @@ func InitialTModelStructMenu(structObj any, fieldList []string, asBlacklist bool
 		t = t.Elem()
 		v = v.Elem()
 	} else {
-		return TModelStructMenu{}, errors.New("structObj should be a pointer to struct, so as to have addressable fields")
+		return Model{}, errors.New("structObj should be a pointer to struct, so as to have addressable fields")
 	}
 	if t.Kind() != reflect.Struct {
-		return TModelStructMenu{}, fmt.Errorf("input structObj found not to be a struct")
+		return Model{}, fmt.Errorf("input structObj found not to be a struct")
 	}
-	newModel := TModelStructMenu{
-		isEditingValue: false,
-		menuFields:     []menuField{},
-		QuitWithCancel: false,
-		Options:        *NewMenuOptions(),
+	newModel := Model{
+		menuFields: []menuField{},
+		options:    *NewMenuOptions(),
+		state: &state{
+			cursor:         nil,
+			isEditingValue: false,
+		},
+		EndState: EndState{
+			QuitWithCancel: false,
+		},
 	}
 
 	if customOptions != nil {
@@ -76,7 +73,7 @@ func InitialTModelStructMenu(structObj any, fieldList []string, asBlacklist bool
 
 	orderedFields, err := getStructIdxMap(t)
 	if err != nil {
-		return TModelStructMenu{}, err
+		return Model{}, err
 	}
 
 	for i := 0; i < t.NumField(); i++ {
@@ -87,7 +84,7 @@ func InitialTModelStructMenu(structObj any, fieldList []string, asBlacklist bool
 			var ok bool
 			j, ok = orderedFields[i]
 			if !ok {
-				return TModelStructMenu{}, fmt.Errorf("could not resolve struct field to display by declaration index %d", i)
+				return Model{}, fmt.Errorf("could not resolve struct field to display by declaration index %d", i)
 			}
 		}
 		field := t.Field(j)
@@ -122,7 +119,7 @@ func InitialTModelStructMenu(structObj any, fieldList []string, asBlacklist bool
 			newField.kind = FieldInt
 			newField.i = int(fieldVal.Int())
 		default:
-			return TModelStructMenu{}, fmt.Errorf("could not parse struct")
+			return Model{}, fmt.Errorf("could not parse struct")
 		}
 		newField.name = field.Name
 		newField.smName = field.Tag.Get("smname")
@@ -131,13 +128,18 @@ func InitialTModelStructMenu(structObj any, fieldList []string, asBlacklist bool
 	}
 
 	if len(newModel.menuFields) == 0 {
-		return TModelStructMenu{}, fmt.Errorf("ERROR: No fields to expose to users in struct")
+		return Model{}, fmt.Errorf("ERROR: No fields to expose to users in struct")
+	}
+
+	newModel.state.cursor = NewCursor(newModel.menuFields, 0)
+	if newModel.state.cursor == nil {
+		return newModel, fmt.Errorf("ERROR, but: len fields %d", len(newModel.menuFields))
 	}
 
 	return newModel, nil
 }
 
-func (m TModelStructMenu) ParseStruct(obj any) error {
+func (m Model) ParseStruct(obj any) error {
 	v := reflect.ValueOf(obj)
 	if v.Kind() != reflect.Pointer || v.Elem().Kind() != reflect.Struct {
 		return fmt.Errorf("expected a pointer to a struct, got %v", v.Kind())
@@ -171,12 +173,12 @@ func (m TModelStructMenu) ParseStruct(obj any) error {
 	return nil
 }
 
-func (m TModelStructMenu) Init() tea.Cmd {
+func (m Model) Init() tea.Cmd {
 	// Just return `nil`, which means "no I/O right now, please."
 	return nil
 }
 
-func (m TModelStructMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	// Is it a key press?
 	case tea.KeyMsg:
@@ -184,21 +186,21 @@ func (m TModelStructMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// toggle edit mode on field if 'enter' key was pressed
 		if msg.String() == "enter" {
 			f := m.getFieldUnderCursor()
-			if !m.isEditingValue {
-				m.isEditingValue = true
+			if !m.state.isEditingValue {
+				m.state.isEditingValue = true
 			} else {
 				f.commitEdit()
-				m.isEditingValue = false
-				if m.Options.TabAfterEntry {
-					m.decrCursor()
+				m.state.isEditingValue = false
+				if m.options.TabAfterEntry {
+					m.state.cursor.decr()
 				}
 			}
 		} else if msg.Type == tea.KeyBackspace {
-			if m.isEditingValue {
+			if m.state.isEditingValue {
 				m.getFieldUnderCursor().handleBackspace()
 			}
 		} else {
-			if m.isEditingValue {
+			if m.state.isEditingValue {
 				m.getFieldUnderCursor().handleChar(msg.String())
 			} else {
 				// Cool, what was the actual key pressed?
@@ -209,32 +211,32 @@ func (m TModelStructMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				// These keys should exit the program.
 				case "ctrl+c", "q":
-					m.QuitWithCancel = true
+					m.EndState.QuitWithCancel = true
 					return m, tea.Quit
 
 				// The "up" and "k" keys move the cursor up, or users may tab backward.
 				case "up", "k", "shift+tab":
-					m.incrCursor()
+					m.state.cursor.incr()
 
 				// The "down" and "j" keys move the cursor down, or users may tab forward.
 				case "down", "j", "tab":
-					m.decrCursor()
+					m.state.cursor.decr()
 
 				}
 			}
 		}
 	}
 
-	// Return the updated TModelStructMenu to the Bubble Tea runtime for processing.
+	// Return the updated model to the Bubble Tea runtime for processing.
 	// Note that we're not returning a command.
 	return m, nil
 }
 
-func (m TModelStructMenu) View() string {
+func (m Model) View() string {
 	var s string
 	// Add the header, if it exists
-	if m.Options.header != "" {
-		s = m.Options.header + "\n"
+	if m.options.header != "" {
+		s = m.options.header + "\n"
 	}
 	s += "\n"
 
@@ -249,7 +251,7 @@ func (m TModelStructMenu) View() string {
 	// for formatting, get longest cursor string and build
 	// the empty version of the cursor based on its length
 	cursorEmpty := ""
-	for _, cursor := range []string{m.Options.NavCursorChar, m.Options.EditCursorChar} {
+	for _, cursor := range []string{m.options.NavCursorChar, m.options.EditCursorChar} {
 		if len(cursor) > len(cursorEmpty) {
 			cursorEmpty = ""
 			for range cursor {
@@ -263,22 +265,22 @@ func (m TModelStructMenu) View() string {
 
 		// Is the cursor pointing at this choice?
 		cursor := "  " // no cursor
-		if m.cursor == i {
-			if m.isEditingValue {
-				cursor = m.Options.EditCursorChar
+		if i == m.state.cursor.idx() {
+			if m.state.isEditingValue {
+				cursor = m.options.EditCursorChar
 			} else {
-				cursor = m.Options.NavCursorChar
+				cursor = m.options.NavCursorChar
 			}
 		}
 
 		// string represenation of field value
-		value := f.render(m.isEditingValue && m.cursor == i, m.Options.IBeamChar)
+		value := f.render(m.state.isEditingValue && m.state.cursor.idx() == i, m.options.IBeamChar)
 		s += fmt.Sprintf("%s ⟦ %-*s ⟧: %s\n", cursor, maxFieldName, f.getFieldName(), value)
 	}
 
 	// The footer
 	s += "\n"
-	if smDes := m.getFieldAtIndex(m.cursor).smDes; smDes != "" {
+	if smDes := m.getFieldAtIndex(m.state.cursor.idx()).smDes; smDes != "" {
 		s += smDes
 	}
 	s += "\n"

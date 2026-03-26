@@ -39,24 +39,24 @@ func main() {
 	// STEP 4: Initialize a menu!
 	// Provide a pointer to your struct, blacklisted or
 	// whitelisted fields, and any custom options.
-	configEditMenu, err := menu.InitialTModelStructMenu(&newApplication, []string{"BlacklistedField"}, true, customMenuOptions)
+	model, err := menu.NewMenu(&newApplication, []string{"BlacklistedField"}, true, customMenuOptions)
 	if err != nil {
-		log.Fatal("Trouble generating the application: ", err)
+		log.Fatalf("Trouble generating the application: %s", err)
 	}
 	// STEP 5: Use the menu---a bubbletea model---with the bubbletea package!
 	// Here, we capture the result (our struct with user-entered values)
 	// as the tea.Model variable "entry".
-	p := tea.NewProgram(configEditMenu)
-	if entry, err := p.Run(); err != nil {
-		log.Fatal("Trouble generating the application.")
+	p := tea.NewProgram(model)
+	if _, err := p.Run(); err != nil {
+		log.Fatalf("Trouble generating the application: %s", err)
 	} else {
-		if entry.(menu.TModelStructMenu).QuitWithCancel {
+		if model.EndState.QuitWithCancel {
 			fmt.Printf("Canceled application.\n")
 			os.Exit(0)
 		} else {
-			err = entry.(menu.TModelStructMenu).ParseStruct(&newApplication)
+			err = model.ParseStruct(&newApplication)
 			if err != nil {
-				log.Fatal("Trouble generating the application.")
+				log.Fatalf("Trouble getting data from the application: %s", err)
 			}
 
 			// Your struct is now full of user-entered values!
