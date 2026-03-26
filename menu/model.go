@@ -48,9 +48,8 @@ func (m *TModelStructMenu) getFieldUnderCursor() *menuField {
 }
 
 // InitialTModelStructMenu creates a new struct menu from the given parameters.
-// If customSettings are not provided, the menu will fall back to defaults.
-// If using custom menu settings, first initialize them with the setDefaults() method.
-func InitialTModelStructMenu(structObj any, fieldList []string, asBlacklist bool, customSettings *MenuOptions) (TModelStructMenu, error) {
+// If customOptions are not provided, the menu will fall back to defaults.
+func InitialTModelStructMenu(structObj any, fieldList []string, asBlacklist bool, customOptions *MenuOptions) (InitialTModelStructMenu, error) {
 	// if fieldList is empty, all fields are exposed to users; otherwise, it is used as a whitelist.
 	// if bool parameter 'asBlacklist' is 'true', the fieldList is used as a blacklist instead of a whitelist.
 	t := reflect.TypeOf(structObj)
@@ -68,13 +67,13 @@ func InitialTModelStructMenu(structObj any, fieldList []string, asBlacklist bool
 		isEditingValue: false,
 		menuFields:     []menuField{},
 		QuitWithCancel: false,
+		Options:        *NewMenuOptions(),
 	}
 
-	if customSettings != nil {
-		newModel.Options = *customSettings
-	} else {
-		newModel.Options.Init()
+	if customOptions != nil {
+		newModel.options = *customOptions
 	}
+
 	orderedFields, err := getStructIdxMap(t)
 	if err != nil {
 		return TModelStructMenu{}, err
@@ -234,8 +233,8 @@ func (m TModelStructMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m TModelStructMenu) View() string {
 	var s string
 	// Add the header, if it exists
-	if m.Options.Header != "" {
-		s = m.Options.Header + "\n"
+	if m.Options.header != "" {
+		s = m.Options.header + "\n"
 	}
 	s += "\n"
 

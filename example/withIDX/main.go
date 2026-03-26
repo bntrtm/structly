@@ -26,10 +26,10 @@ type applicationForm struct {
 
 func main() {
 	// STEP 2: Choose custom options to apply to your menu, if you desire.
-	customMenuOptions := &menu.MenuOptions{}
-	// Ensure that if you use custom options, you initialize them first!
-	customMenuOptions.Init()
-	customMenuOptions.Header = "Apply for this job: "
+	// Ensure that if you use custom options, you use NewMenuOptions(),
+	// so that their values are initialized to sane defaults before use!
+	customMenuOptions := menu.NewMenuOptions()
+	customMenuOptions.SetHeader("Apply for this job: ")
 
 	// STEP 3: Provide a struct to use.
 	// Don't worry, if you need to provide a struct with non-zero

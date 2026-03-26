@@ -67,14 +67,14 @@ changing the ibeam cursor rendered during string input, or what the field
 cursor might look like.
 
 Here, we write a custom header to render during form interaction.
+Before setting any values on
 Because we're using custom options, we will have to initialize them
 before setting any of the values on them.
 _Never forget to do this! Zero values for menu options are NOT the defaults._
 
 ```go
- customMenuOptions := &menu.MenuOptions{}
- customMenuOptions.Init()
- customMenuOptions.Header = "Apply for this job: "
+ customMenuOptions := menu.NewMenuOptions()
+ customMenuOptions.SetHeader("Apply for this job: ")
 ```
 
 ### Step 4: Provide a struct to use during menu input
