@@ -62,8 +62,7 @@ func InitialTModelStructMenu(structObj any, fieldList []string, asBlacklist bool
 		return TModelStructMenu{}, errors.New("structObj should be a pointer to struct, so as to have addressable fields")
 	}
 	if t.Kind() != reflect.Struct {
-		fmt.Println("ERROR: Not a struct. Check your input!")
-		return TModelStructMenu{}, nil
+		return TModelStructMenu{}, fmt.Errorf("input structObj found not to be a struct")
 	}
 	newModel := TModelStructMenu{
 		isEditingValue: false,
@@ -150,11 +149,11 @@ func (m TModelStructMenu) ParseStruct(obj any) error {
 		field := v.FieldByName(f.name)
 
 		if !field.IsValid() {
-			fmt.Printf("Warning: Field '%s' not found in struct.\n", f.name)
+			log.Printf("Warning: Field '%s' not found in struct.\n", f.name)
 			continue
 		}
 		if !field.CanSet() {
-			fmt.Printf("Warning: Field '%s' cannot be set (unexported or not addressable).\n", f.name)
+			log.Printf("Warning: Field '%s' cannot be set (unexported or not addressable).\n", f.name)
 			continue
 		}
 
