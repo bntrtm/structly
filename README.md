@@ -1,20 +1,34 @@
-# gostructui
+# Structly
 
-![gostructui-example](https://github.com/user-attachments/assets/6effe862-21c1-472a-85ca-5b815580807c)
+![structly-example](https://github.com/user-attachments/assets/6effe862-21c1-472a-85ca-5b815580807c)
 
-A Go Library of bubbletea models leveraging the `reflect` package to expose structs
+Structly is a Go library of bubbletea models leveraging the power of the `reflect` package to expose structs
 as forms and menus directly to CLI users, allowing them to edit fields with primitive types.
 
 ## Motivation
 
-I built `gostructui` just as soon as I realized that I needed an easy, all-in-one method to ask for
-user form input through a CLI. We shouldn't always have to ask CLI users for _one thing at a time._
-I personally like to expose config structs to CLI users so that they can set those values easily
-through the CLI, and then I save the result.
+I built Structly just as soon as I realized that I needed an easy, all-in-one method to ask for user form input through a CLI.
+You may wonder, _"Isn't that what Charm's `huh?` is for?"_
+But while [huh](https://github.com/charmbracelet/huh) is great, Structly aims to solve an albeit similar but separate set of problems.
+
+Structly's methodology revolves (unsurprisingly) entirely around structs. This provides the following benefits:
+
+- Fields are declared definitively, as opposed to functionally
+- Better memory management potential, by virtue of struct layouts
+- Struct tags become a useful tool for setting menu options for each field
+- Rendering becomes as simple as providing an instance of the type
+- Blacklisting fields from menu exposure means relevant information can be tightly coupled with user inputs
+- Boilerplate is drastically reduced
+  - Default values for fields are simply pulled from the struct instance provided at render time
+  - Declaration of a form is as familiar and succinct as defining a struct type and working with an instance of that, as opposed to calling a great amount of methods
+
+I personally use Structly to expose CLI configurations to users so that they can set those
+values easily through the CLI, and then I can save the result using `json` tags also set on the
+struct fields.
 
 ## Usage
 
-Right now, the only user-editable fields are:
+As of right now, the only types compatible for user-editable fields are:
 
 - Strings
 - Integers
@@ -25,11 +39,11 @@ The repo contains an example of how to use the package within `./example/default
 ### Step 1: Import the menu package
 
 ```bash
-go get github.com/bntrtm/gostructui
+go get github.com/bntrtm/structly
 ```
 
 ```go
-import "github.com/bntrtm/gostructui/menu"
+import "github.com/bntrtm/structly/menu"
 ```
 
 ### Step 2: Establish the struct you wish to expose to the user
@@ -99,7 +113,7 @@ with the names given within the string slice to the left will be hidden from use
 see it in the demo above; the field doesn't show up!
 
 ```go
-configEditMenu, err := gostructui.InitialTModelStructMenu(&newApplication, []string{"BlacklistedField"}, true, customMenuOptions)
+configEditMenu, err := structly.InitialTModelStructMenu(&newApplication, []string{"BlacklistedField"}, true, customMenuOptions)
  if err != nil {
   log.Fatal("Trouble generating the application.")
  }
@@ -116,11 +130,11 @@ p := tea.NewProgram(configEditMenu)
  if entry, err := p.Run(); err != nil {
   log.Fatal("Trouble generating the application.")
  } else {
-  if entry.(gostructui.TModelStructMenu).QuitWithCancel {
+  if entry.(structly.TModelStructMenu).QuitWithCancel {
    fmt.Printf("Canceled application.\n")
    os.Exit(0)
   } else {
-   err = entry.(gostructui.TModelStructMenu).ParseStruct(&newApplication)
+   err = entry.(structly.TModelStructMenu).ParseStruct(&newApplication)
    if err != nil {
     log.Fatal("Trouble generating the application.")
    }
@@ -136,7 +150,7 @@ p := tea.NewProgram(configEditMenu)
  }
 ```
 
-You have now captured user input for one or more fields using the `gostructui` package!
+You have now captured user input for one or more fields using the `structly` package!
 Do what you need with these new values. In the demo, our program
 prints the name of the applicant after applying.
 
@@ -181,7 +195,7 @@ we end up wasting a total of 8 precious bytes!
 Is there anyone who could help us?
 
 Enter the `idx` tag! This tag allows us to declare our struct fields in whatever
-more memory-performant way we desire, while telling `gostructui`'s bubbletea
+more memory-performant way we desire, while telling `structly`'s bubbletea
 model what order we actually want to display them in.
 
 ```go
