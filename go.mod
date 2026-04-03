@@ -1,4 +1,4 @@
-module github.com/bntrtm/gostructui
+module github.com/bntrtm/structly
 
 go 1.25.5
 

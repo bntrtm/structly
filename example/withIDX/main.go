@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/bntrtm/gostructui/menu"
+	"github.com/bntrtm/structly/menu"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
