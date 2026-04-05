@@ -79,15 +79,15 @@ func TestGetStructIdxMap(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			rType := reflect.TypeOf(tt.input)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			rType := reflect.TypeOf(tc.input)
 			tags, err := getStructIdxMap(rType)
-			if (err != nil) != tt.wantErr {
+			if (err != nil) != tc.wantErr {
 				t.Errorf("got unexpected error: %s", err)
 			}
-			if !maps.Equal(tags, tt.expected) {
-				t.Errorf("expected: %v, got: %v", tt.expected, tags)
+			if !maps.Equal(tags, tc.expected) {
+				t.Errorf("expected: %v, got: %v", tc.expected, tags)
 			}
 		})
 	}
