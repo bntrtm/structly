@@ -1,7 +1,6 @@
 package menu
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"reflect"
@@ -39,23 +38,55 @@ func (m *Model) getFieldUnderCursor() *menuField {
 	return m.state.cursor.under()
 }
 
-// NewMenu creates a new struct menu from the given parameters.
-// If customOptions are not provided, the menu will fall back to defaults.
-func NewMenu(structObj any, fieldList []string, asBlacklist bool, customOptions *MenuOptions) (Model, error) {
+// NewMenu attempts to validate the given interface object as
+// a type compatible for rendering as a Structly menu, and, if
+// successful, generates and returns a menu as a bubbletea model.
+//
+// Interface 'i' MUST be a pointer to a struct that satisfies
+// all requirements of a struct compatible with rendering as a
+// Structly menu.
+//
+// The optional 'exceptions' parameter may be provided one or more
+// field names to blacklist from view within the resulting Menu
+// instance. If used, the list's final element must match the value
+// of either of the indicator constants used to define exception lists.
+// The Black() and White() functions exist as convenience wrappers to
+// provide this functionally.
+func NewMenu(i any, exceptions ...string) (Model, error) {
+	return generateNewMenu(i, nil, exceptions...)
+}
+
+// NewMenuWithOptions operates just as NewMenu does, but exposes
+// a parameter for passing a list of options. Because a call of
+// this function is necessarily deliberate, it will helpfully
+// return an error if no options are passed in.
+func NewMenuWithOptions(structlyPtr any, options *MenuOptions, list ...string) (Model, error) {
+	if options == nil {
+		return Model{}, fmt.Errorf("new menu requested with options, but no options were provided")
+	}
+	return generateNewMenu(structlyPtr, options, list...)
+}
+
+// generateNewMenu validates and creates a new struct menu from the given
+// parameters. If custom options are not provided, the menu will fall back
+// to defaults.
+func generateNewMenu(obj any, options *MenuOptions, exceptions ...string) (Model, error) {
 	// if fieldList is empty, all fields are exposed to users; otherwise, it is used as a whitelist.
 	// if bool parameter 'asBlacklist' is 'true', the fieldList is used as a blacklist instead of a whitelist.
-	t := reflect.TypeOf(structObj)
-	v := reflect.ValueOf(structObj)
+	m := Model{}
+
+	t := reflect.TypeOf(obj)
+	v := reflect.ValueOf(obj)
 	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 		v = v.Elem()
 	} else {
-		return Model{}, errors.New("structObj should be a pointer to struct, so as to have addressable fields")
+		return m, fmt.Errorf("obj should be a pointer to struct, so as to have addressable fields")
 	}
 	if t.Kind() != reflect.Struct {
-		return Model{}, fmt.Errorf("input structObj found not to be a struct")
+		return m, fmt.Errorf("input obj found not to be a struct")
 	}
-	newModel := Model{
+	m = Model{
 		menuFields: []menuField{},
 		options:    *NewMenuOptions(),
 		state: &state{
@@ -67,13 +98,18 @@ func NewMenu(structObj any, fieldList []string, asBlacklist bool, customOptions 
 		},
 	}
 
-	if customOptions != nil {
-		newModel.options = *customOptions
+	if options != nil {
+		m.options = *options
 	}
 
 	orderedFields, err := getStructIdxMap(t)
 	if err != nil {
-		return Model{}, err
+		return m, err
+	}
+
+	exceptionListIndicator, exceptions, err := validateExceptionList(exceptions)
+	if err != nil {
+		return m, err
 	}
 
 	for i := 0; i < t.NumField(); i++ {
@@ -84,20 +120,25 @@ func NewMenu(structObj any, fieldList []string, asBlacklist bool, customOptions 
 			var ok bool
 			j, ok = orderedFields[i]
 			if !ok {
-				return Model{}, fmt.Errorf("could not resolve struct field to display by declaration index %d", i)
+				return m, fmt.Errorf("could not resolve struct field to display by declaration index %d", i)
 			}
 		}
 		field := t.Field(j)
 
-		if len(fieldList) != 0 {
-			if asBlacklist {
-				if slices.Contains(fieldList, field.Name) {
+		if len(exceptions) != 0 {
+			switch exceptionListIndicator {
+			case BlacklistIndicator:
+				if slices.Contains(exceptions, field.Name) {
 					continue
 				}
-			} else {
-				if !(slices.Contains(fieldList, field.Name)) {
+			case WhitelistIndicator:
+				if !(slices.Contains(exceptions, field.Name)) {
 					continue
 				}
+			case "":
+				panic("no indicator provided for exception list")
+			default:
+				panic("found unexpected indicator for exception list: " + exceptionListIndicator)
 			}
 		}
 
@@ -119,24 +160,24 @@ func NewMenu(structObj any, fieldList []string, asBlacklist bool, customOptions 
 			newField.kind = FieldInt
 			newField.i = int(fieldVal.Int())
 		default:
-			return Model{}, fmt.Errorf("could not parse struct")
+			return m, fmt.Errorf("could not parse struct")
 		}
 		newField.name = field.Name
 		newField.smName = field.Tag.Get("smname")
 		newField.smDes = field.Tag.Get("smdes")
-		newModel.menuFields = append(newModel.menuFields, newField)
+		m.menuFields = append(m.menuFields, newField)
 	}
 
-	if len(newModel.menuFields) == 0 {
-		return Model{}, fmt.Errorf("ERROR: No fields to expose to users in struct")
+	if len(m.menuFields) == 0 {
+		return m, fmt.Errorf("ERROR: No fields to expose to users in struct")
 	}
 
-	newModel.state.cursor = NewCursor(newModel.menuFields, 0)
-	if newModel.state.cursor == nil {
-		return newModel, fmt.Errorf("ERROR, but: len fields %d", len(newModel.menuFields))
+	m.state.cursor = NewCursor(m.menuFields, 0)
+	if m.state.cursor == nil {
+		return m, fmt.Errorf("ERROR, but: len fields %d", len(m.menuFields))
 	}
 
-	return newModel, nil
+	return m, nil
 }
 
 func (m Model) ParseStruct(obj any) error {

@@ -39,7 +39,10 @@ func main() {
 	// STEP 4: Initialize a menu!
 	// Provide a pointer to your struct, blacklisted or
 	// whitelisted fields, and any custom options.
-	model, err := menu.NewMenu(&newApplication, []string{"BlacklistedField"}, true, customMenuOptions)
+
+	// NOTE: Black() and White() exist as convenience wrappers to satisfy
+	// validation logic for exceptions under the hood.
+	model, err := menu.NewMenuWithOptions(&newApplication, customMenuOptions, menu.Black("BlacklistedField")...)
 	if err != nil {
 		log.Fatalf("Trouble generating the application: %s", err)
 	}
