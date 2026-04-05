@@ -94,7 +94,7 @@ func TestGetStructIdxMap(t *testing.T) {
 }
 
 func TestIDXMemoryLayout(t *testing.T) {
-	type explicitOrderForm struct {
+	type inoptimalOrderForm struct {
 		string1 string //nolint
 		bool1   bool   //nolint
 		string2 string //nolint
@@ -110,13 +110,13 @@ func TestIDXMemoryLayout(t *testing.T) {
 		bool2   bool   `idx:"3"` //nolint
 	}
 
-	expType := reflect.TypeFor[explicitOrderForm]()
+	expType := reflect.TypeFor[inoptimalOrderForm]()
 	idxType := reflect.TypeFor[idxOrderForm]()
-	expTSize := expType.Size()
-	t.Logf("explicitly ordered struct is %d bytes\n", expTSize)
+	inopTSize := expType.Size()
 	idxTSize := idxType.Size()
-	t.Logf("idx tag-ordered struct is %d bytes\n", idxTSize)
-	if idxTSize > expTSize {
-		t.Errorf("expected size of form ordered by idx tags (%d) to be of lower size than explicit counterpart (%d)", idxTSize, expTSize)
+	if idxTSize > inopTSize {
+		t.Errorf("expected size of form ordered by idx tags (%d) to be of lower size than explicit counterpart (%d)", idxTSize, inopTSize)
+	} else {
+		t.Logf("idx-tagged struct (%d bytes) < inoptimal struct (%d bytes)", idxTSize, inopTSize)
 	}
 }
