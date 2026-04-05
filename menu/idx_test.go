@@ -6,15 +6,17 @@ import (
 	"testing"
 )
 
-func TestGetStructIdxMap(t *testing.T) {
-	tests := []struct {
+func TestGetOrderedFields(t *testing.T) {
+	type idxTest struct {
 		expected map[int]int
 		input    any
 		name     string
 		wantErr  bool
-	}{
+	}
+
+	idxTestsIsolated := []idxTest{
 		{
-			name: "no idx tags returns empty with no error",
+			name: "no idx validation returns empty with no error",
 			input: struct {
 				b bool
 				s string
@@ -24,7 +26,7 @@ func TestGetStructIdxMap(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name: "idx tags returns indeces as specified per field",
+			name: "idx validation returns indeces as specified per field",
 			input: struct {
 				b bool   `idx:"2"`
 				s string `idx:"0"`
@@ -38,7 +40,7 @@ func TestGetStructIdxMap(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "idx tags not starting at 0 returns nil with error",
+			name: "idx validation not starting at 0 returns nil with error",
 			input: struct {
 				b bool   `idx:"3"`
 				s string `idx:"1"`
@@ -48,7 +50,7 @@ func TestGetStructIdxMap(t *testing.T) {
 			wantErr:  true,
 		},
 		{
-			name: "idx tags out of sequence returns nil with error",
+			name: "idx validation out of sequence returns nil with error",
 			input: struct {
 				b bool   `idx:"3"`
 				s string `idx:"0"`
@@ -78,16 +80,87 @@ func TestGetStructIdxMap(t *testing.T) {
 			wantErr:  true,
 		},
 	}
+	idxTestsWithBlacklistTag := []idxTest{
+		{
+			name: "idx validation skips bl-tagged field (first)",
+			input: struct {
+				b bool   `bl:""`
+				s string `idx:"0"`
+				i int    `idx:"1"`
+			}{},
+			expected: map[int]int{
+				1: 2,
+				0: 1,
+			},
+			wantErr: false,
+		},
+		{
+			name: "idx validation skips bl-tagged field (middle)",
+			input: struct {
+				b bool   `idx:"1"`
+				s string `bl:""`
+				i int    `idx:"0"`
+			}{},
+			expected: map[int]int{
+				1: 0,
+				0: 2,
+			},
+			wantErr: false,
+		},
+		{
+			name: "idx validation skips bl-tagged field (last)",
+			input: struct {
+				b bool   `idx:"1"`
+				s string `idx:"0"`
+				i int    `bl:""`
+			}{},
+			expected: map[int]int{
+				1: 0,
+				0: 1,
+			},
+			wantErr: false,
+		},
+		{
+			name: "errors with incompatible tags idx and bl",
+			input: struct {
+				b bool   `idx:"2" bl:""`
+				s string `idx:"0"`
+				i int    `bl:"1"`
+			}{},
+			expected: nil,
+			wantErr:  true,
+		},
+	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			rType := reflect.TypeOf(tc.input)
-			tags, err := getStructIdxMap(rType)
-			if (err != nil) != tc.wantErr {
-				t.Errorf("got unexpected error: %s", err)
-			}
-			if !maps.Equal(tags, tc.expected) {
-				t.Errorf("expected: %v, got: %v", tc.expected, tags)
+	tests := []struct {
+		name  string
+		batch []idxTest
+	}{
+		{
+			// test that idx-tagged structs work in isolation
+			name:  "idx tag logic (isolated)",
+			batch: idxTestsIsolated,
+		},
+		{
+			// test idx tag interoperability with bl tag
+			name:  "idx tag logic (bl tag compatibility)",
+			batch: idxTestsWithBlacklistTag,
+		},
+	}
+
+	for _, tb := range tests {
+		t.Run(tb.name, func(t *testing.T) {
+			for _, tc := range tb.batch {
+				t.Run(tc.name, func(t *testing.T) {
+					rType := reflect.TypeOf(tc.input)
+					tags, err := getOrderedFields(rType)
+					if (err != nil) != tc.wantErr {
+						t.Errorf("got unexpected error: %v", err)
+					}
+					if !maps.Equal(tags, tc.expected) {
+						t.Errorf("expected: %v, got: %v", tc.expected, tags)
+					}
+				})
 			}
 		})
 	}

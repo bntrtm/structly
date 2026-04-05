@@ -102,7 +102,7 @@ func generateNewMenu(obj any, options *MenuOptions, exceptions ...string) (Model
 		m.options = *options
 	}
 
-	orderedFields, err := getStructIdxMap(t)
+	orderedFields, err := getOrderedFields(t)
 	if err != nil {
 		return m, err
 	}
@@ -112,16 +112,10 @@ func generateNewMenu(obj any, options *MenuOptions, exceptions ...string) (Model
 		return m, err
 	}
 
-	for i := 0; i < t.NumField(); i++ {
-		var j int
-		if len(orderedFields) == 0 {
-			j = i
-		} else {
-			var ok bool
-			j, ok = orderedFields[i]
-			if !ok {
-				return m, fmt.Errorf("could not resolve struct field to display by declaration index %d", i)
-			}
+	for i := 0; i < len(orderedFields); i++ {
+		j, ok := orderedFields[i]
+		if !ok {
+			return m, fmt.Errorf("could not resolve struct field to display by declaration index %d", i)
 		}
 		field := t.Field(j)
 
