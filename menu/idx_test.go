@@ -18,9 +18,9 @@ func TestGetOrderedFields(t *testing.T) {
 		{
 			name: "no idx validation returns empty with no error",
 			input: struct {
-				b bool
 				s string
 				i int
+				b bool
 			}{},
 			expected: map[int]int{},
 			wantErr:  false,
@@ -28,9 +28,9 @@ func TestGetOrderedFields(t *testing.T) {
 		{
 			name: "idx validation returns indeces as specified per field",
 			input: struct {
-				b bool   `idx:"2"`
-				s string `idx:"0"`
-				i int    `idx:"1"`
+				s string `idx:"2"`
+				i int    `idx:"0"`
+				b bool   `idx:"1"`
 			}{},
 			expected: map[int]int{
 				2: 0,
@@ -42,9 +42,9 @@ func TestGetOrderedFields(t *testing.T) {
 		{
 			name: "idx validation not starting at 0 returns nil with error",
 			input: struct {
-				b bool   `idx:"3"`
-				s string `idx:"1"`
-				i int    `idx:"2"`
+				s string `idx:"3"`
+				i int    `idx:"1"`
+				b bool   `idx:"2"`
 			}{},
 			expected: nil,
 			wantErr:  true,
@@ -52,9 +52,9 @@ func TestGetOrderedFields(t *testing.T) {
 		{
 			name: "idx validation out of sequence returns nil with error",
 			input: struct {
-				b bool   `idx:"3"`
-				s string `idx:"0"`
-				i int    `idx:"1"`
+				s string `idx:"3"`
+				i int    `idx:"0"`
+				b bool   `idx:"1"`
 			}{},
 			expected: nil,
 			wantErr:  true,
@@ -62,8 +62,8 @@ func TestGetOrderedFields(t *testing.T) {
 		{
 			name: "missing idx tag returns nil with error",
 			input: struct {
-				b bool `idx:"2"`
-				s string
+				s string `idx:"2"`
+				b bool
 				i int `idx:"1"`
 			}{},
 			expected: nil,
@@ -72,9 +72,9 @@ func TestGetOrderedFields(t *testing.T) {
 		{
 			name: "missing idx on first field enforces non-presence",
 			input: struct {
-				b bool
-				s string `idx:"0"`
-				i int    `idx:"1"`
+				s string
+				i int  `idx:"0"`
+				b bool `idx:"1"`
 			}{},
 			expected: nil,
 			wantErr:  true,
@@ -84,9 +84,9 @@ func TestGetOrderedFields(t *testing.T) {
 		{
 			name: "idx validation skips bl-tagged field (first)",
 			input: struct {
-				b bool   `bl:""`
-				s string `idx:"0"`
-				i int    `idx:"1"`
+				s string `bl:""`
+				i int    `idx:"0"`
+				b bool   `idx:"1"`
 			}{},
 			expected: map[int]int{
 				1: 2,
@@ -97,9 +97,9 @@ func TestGetOrderedFields(t *testing.T) {
 		{
 			name: "idx validation skips bl-tagged field (middle)",
 			input: struct {
-				b bool   `idx:"1"`
-				s string `bl:""`
-				i int    `idx:"0"`
+				s string `idx:"1"`
+				i int    `bl:""`
+				b bool   `idx:"0"`
 			}{},
 			expected: map[int]int{
 				1: 0,
@@ -110,9 +110,9 @@ func TestGetOrderedFields(t *testing.T) {
 		{
 			name: "idx validation skips bl-tagged field (last)",
 			input: struct {
-				b bool   `idx:"1"`
-				s string `idx:"0"`
-				i int    `bl:""`
+				s string `idx:"1"`
+				i int    `idx:"0"`
+				b bool   `bl:""`
 			}{},
 			expected: map[int]int{
 				1: 0,
@@ -123,9 +123,9 @@ func TestGetOrderedFields(t *testing.T) {
 		{
 			name: "errors with incompatible tags idx and bl",
 			input: struct {
-				b bool   `idx:"2" bl:""`
-				s string `idx:"0"`
-				i int    `bl:"1"`
+				s string `idx:"2" bl:""`
+				i int    `idx:"0"`
+				b bool   `bl:""`
 			}{},
 			expected: nil,
 			wantErr:  true,
