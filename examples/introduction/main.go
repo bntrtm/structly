@@ -10,18 +10,23 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// STEP 1: Establish the struct you wish to expose to the user.
+// Welcome to Structly!
+// This is an introductory example you can read through to get a
+// feel for the basics. There's more you can read about that covers
+// the way struct tags are leveraged for memory performance and
+// field blacklisting, but this is a good place to get started!
+
+// STEP 1: Declare the struct whose fields you wish to expose to users for input.
 
 // applicationForm holds fields typical of a job application.
 type applicationForm struct {
-	FirstName        string `smname:"First Name"`
-	LastName         string `smname:"Last Name"`
-	Email            string
-	PhoneNo          int    `smname:"Phone"`
-	Country          string `smname:"Country"`
-	Location         string `smname:"Location (City)"`
-	CanTravel        bool   `smname:"Travel" smdes:"Can you travel for work?"`
-	BlacklistedField string
+	FirstName string `smname:"First Name"`
+	LastName  string `smname:"Last Name"`
+	Email     string
+	PhoneNo   int    `smname:"Phone"`
+	Country   string `smname:"Country"`
+	Location  string `smname:"Location (City)"`
+	CanTravel bool   `smname:"Travel" smdes:"Can you travel for work?"`
 }
 
 func main() {
@@ -31,24 +36,22 @@ func main() {
 	customMenuOptions := menu.NewMenuOptions()
 	customMenuOptions.SetHeader("Apply for this job: ")
 
-	// STEP 3: Provide a struct to use.
+	// STEP 3: Define a struct to use.
 	// Don't worry, if you need to provide a struct with non-zero
-	// values, you can also do that! The tea model will keep those
-	// values intact.
+	// values, you can also do that! The Structly bubbletea model will
+	// respect those values as defaults all the same.
 	newApplication := applicationForm{}
+
 	// STEP 4: Initialize a menu!
-	// Provide a pointer to your struct, blacklisted or
-	// whitelisted fields, and any custom options.
-	//
-	// NOTE: Black() and White() exist as convenience wrappers to satisfy
-	// validation logic for exceptions under the hood.
-	model, err := menu.NewMenuWithOptions(&newApplication, customMenuOptions, menu.Black("BlacklistedField")...)
+	// Provide a pointer to your struct.
+	// If you chose not to define custom options, use the NewMenu function, instead.
+	model, err := menu.NewMenuWithOptions(&newApplication, customMenuOptions)
 	if err != nil {
 		log.Fatalf("Trouble generating the application: %s", err)
 	}
-	// STEP 5: Use the menu---a bubbletea model---with the bubbletea package!
-	// Here, we capture the result (our struct with user-entered values)
-	// as the tea.Model variable "entry".
+	// STEP 5: Pass your new Structly model to the bubbletea package to generate your menu!
+	// After the bubbletea program exits, the instance you defined will contain the
+	// user-input values.
 	p := tea.NewProgram(model)
 	if _, err := p.Run(); err != nil {
 		log.Fatalf("Trouble generating the application: %s", err)
@@ -62,7 +65,7 @@ func main() {
 				log.Fatalf("Trouble getting data from the application: %s", err)
 			}
 
-			// Your struct is now full of user-entered values!
+			// Your struct is now full of user-input values!
 			// Do what you need with it.
 
 			// newApplication: "Wow, I feel like a new struct!"
@@ -71,7 +74,7 @@ func main() {
 			log.Fatal("ERROR: Missing First Name field!")
 		}
 		fmt.Printf("Thank you for applying, %s!\n", newApplication.FirstName)
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 3)
 		os.Exit(0)
 	}
 }
