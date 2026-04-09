@@ -57,8 +57,8 @@ func getOrderedFields(t reflect.Type) (map[int]int, error) {
 			if err != nil || idx < 0 {
 				return nil, fmt.Errorf("value for `idx` tag on field %s must be an integer >= 0", field.Name)
 			}
-			if val, ok := idxTagVals[idx]; ok {
-				return nil, fmt.Errorf("value %d for `idx` tag on field %s already assigned to another field", val, field.Name)
+			if _, ok := idxTagVals[idx]; ok {
+				return nil, fmt.Errorf("value %d for `idx` tag on field %s already assigned to another field", idx, field.Name)
 			}
 			idxTagVals[idx] = i
 		} else if isIndexed {
