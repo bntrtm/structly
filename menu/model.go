@@ -73,17 +73,15 @@ func NewMenuWithOptions(structlyPtr any, options *MenuOptions, list ...string) (
 func generateNewMenu(ptr any, options *MenuOptions, exceptions ...string) (Model, error) {
 	m := Model{}
 
-	t := reflect.TypeOf(ptr)
 	v := reflect.ValueOf(ptr)
-	if t.Kind() == reflect.Pointer {
-		t = t.Elem()
-		v = v.Elem()
-	} else {
+	if v.Kind() != reflect.Pointer {
 		return m, fmt.Errorf("ptr interface should be a pointer to a struct, so as to have addressable fields")
 	}
-	if t.Kind() != reflect.Struct {
+	v = v.Elem()
+	if v.Kind() != reflect.Struct {
 		return m, fmt.Errorf("input ptr found not to point to a struct")
 	}
+
 	m = Model{
 		menuFields: []menuField{},
 		options:    *NewMenuOptions(),
@@ -100,6 +98,7 @@ func generateNewMenu(ptr any, options *MenuOptions, exceptions ...string) (Model
 		m.options = *options
 	}
 
+	t := v.Type()
 	orderedFields, err := getOrderedFields(t)
 	if err != nil {
 		return m, err
