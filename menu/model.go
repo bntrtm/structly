@@ -52,8 +52,13 @@ func (m *Model) getFieldUnderCursor() *menuField {
 // of either of the indicator constants used to define exception lists.
 // The Black() and White() functions exist as convenience wrappers to
 // provide this functionally.
-func NewMenu(i any, exceptions ...string) (Model, error) {
-	return generateNewMenu(i, nil, exceptions...)
+func NewMenu(structlyPtr any, exceptions ...string) (Model, error) {
+	v, err := validateStructPtr(structlyPtr)
+	if err != nil {
+		return Model{}, err
+	}
+
+	return generateNewMenu(v, nil, exceptions...)
 }
 
 // NewMenuWithOptions operates just as NewMenu does, but exposes
@@ -61,28 +66,25 @@ func NewMenu(i any, exceptions ...string) (Model, error) {
 // this function is necessarily deliberate, it will helpfully
 // return an error if no options are passed in.
 func NewMenuWithOptions(structlyPtr any, options *MenuOptions, list ...string) (Model, error) {
-	if options == nil {
-		return Model{}, fmt.Errorf("new menu requested with options, but no options were provided")
-	}
-	return generateNewMenu(structlyPtr, options, list...)
-}
-
-// generateNewMenu validates and creates a new struct menu from the given
-// parameters. If custom options are not provided, the menu will fall back
-// to defaults.
-func generateNewMenu(ptr any, options *MenuOptions, exceptions ...string) (Model, error) {
 	m := Model{}
 
-	v := reflect.ValueOf(ptr)
-	if v.Kind() != reflect.Pointer {
-		return m, fmt.Errorf("ptr interface should be a pointer to a struct, so as to have addressable fields")
-	}
-	v = v.Elem()
-	if v.Kind() != reflect.Struct {
-		return m, fmt.Errorf("input ptr found not to point to a struct")
+	if options == nil {
+		return m, fmt.Errorf("new menu requested with options, but no options were provided")
 	}
 
-	m = Model{
+	v, err := validateStructPtr(structlyPtr)
+	if err != nil {
+		return m, err
+	}
+
+	return generateNewMenu(v, options, list...)
+}
+
+// generateNewMenu expects a reflect.Value validated as a struct value and
+// generates a new menu model from the given parameters. If custom options
+// are not provided, the menu will fall back to defaults.
+func generateNewMenu(v reflect.Value, options *MenuOptions, exceptions ...string) (Model, error) {
+	m := Model{
 		menuFields: []menuField{},
 		options:    *NewMenuOptions(),
 		state: &state{
@@ -171,12 +173,27 @@ func generateNewMenu(ptr any, options *MenuOptions, exceptions ...string) (Model
 	return m, nil
 }
 
-func (m Model) ParseStruct(obj any) error {
-	v := reflect.ValueOf(obj)
-	if v.Kind() != reflect.Pointer || v.Elem().Kind() != reflect.Struct {
-		return fmt.Errorf("expected a pointer to a struct, got %v", v.Kind())
+// validateStructPtr takes in an interface and ensures that
+// it is a pointer to a struct type before returning then
+// returning the struct as a reflect.Value.
+func validateStructPtr(i any) (reflect.Value, error) {
+	v := reflect.ValueOf(i)
+	if v.Kind() != reflect.Pointer {
+		return v, fmt.Errorf("input interface should be a pointer to a struct, so as to have addressable fields")
 	}
 	v = v.Elem()
+	if v.Kind() != reflect.Struct {
+		return v, fmt.Errorf("input ptr found not to point to a struct")
+	}
+
+	return v, nil
+}
+
+func (m Model) ParseStruct(structlyPtr any) error {
+	v, err := validateStructPtr(structlyPtr)
+	if err != nil {
+		return err
+	}
 
 	for _, f := range m.menuFields {
 		field := v.FieldByName(f.name)
