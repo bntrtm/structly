@@ -101,7 +101,8 @@ func generateNewMenu(v reflect.Value, options *MenuOptions, exceptions ...string
 	}
 
 	t := v.Type()
-	orderedFields, err := getOrderedFields(getFields(t))
+	fields := getFields(t)
+	orderedFields, err := getOrderedFields(fields)
 	if err != nil {
 		return m, err
 	}
@@ -116,7 +117,7 @@ func generateNewMenu(v reflect.Value, options *MenuOptions, exceptions ...string
 		if !ok {
 			return m, fmt.Errorf("could not resolve struct field to display by declaration index %d", i)
 		}
-		field := t.Field(j)
+		field := fields[j]
 
 		if len(exceptions) != 0 {
 			switch exceptionListIndicator {
