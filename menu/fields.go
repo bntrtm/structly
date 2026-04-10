@@ -113,11 +113,22 @@ func (f *menuField) getFieldName() string {
 	return f.name
 }
 
+// getFields returns a map of indeces to reflect.StructField pointers,
+// given a reflect.Type. It does not account for tags whatsoever.
+func getFields(t reflect.Type) map[int]*reflect.StructField {
+	fields := map[int]*reflect.StructField{}
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		fields[i] = &f
+	}
+	return fields
+}
+
 // getOrderedFields accounts for the presence of `idx` and `bl`
-// tags to provide a map that defines the order by which each
-// struct fields ought be rendered in the terminal.
+// tags in StructFields to provide a map that defines the order
+// by which each struct fields ought be rendered in the terminal.
 //
-// If the `idx` tag is in use on the struct,it returns a map of `idx`
+// If the `idx` tag is in use on the struct, it returns a map of `idx`
 // tag values corresponding to the indeces of struct fields within the
 // struct represented by the given reflect.Type, in the order they
 // are declared. The presence or non-presence of the tags is validated
@@ -132,7 +143,7 @@ func (f *menuField) getFieldName() string {
 // blacklisted with the `bl` tag.
 //
 // Where validation fails, a nil map and error are returned.
-func getOrderedFields(t reflect.Type) (map[int]int, error) {
+func getOrderedFields(t map[int]*reflect.StructField) (map[int]int, error) {
 	wantIdx := struct {
 		val   bool
 		isSet bool
@@ -140,8 +151,11 @@ func getOrderedFields(t reflect.Type) (map[int]int, error) {
 
 	idxTagVals := map[int]int{}
 	blacklistCount := 0
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
+	for i := 0; i < len(t); i++ {
+		field := t[i]
+		if field == nil {
+			return nil, fmt.Errorf("encountered nil struct field")
+		}
 
 		_, isBlacklisted := field.Tag.Lookup("bl")
 		tagValue, isIndexed := field.Tag.Lookup("idx")

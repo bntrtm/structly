@@ -99,7 +99,7 @@ func generateNewMenu(ptr any, options *MenuOptions, exceptions ...string) (Model
 	}
 
 	t := v.Type()
-	orderedFields, err := getOrderedFields(t)
+	orderedFields, err := getOrderedFields(getFields(t))
 	if err != nil {
 		return m, err
 	}

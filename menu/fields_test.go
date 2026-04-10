@@ -170,12 +170,12 @@ func TestGetOrderedFields(t *testing.T) {
 			for _, tc := range tb.batch {
 				t.Run(tc.name, func(t *testing.T) {
 					rType := reflect.TypeOf(tc.input)
-					tags, err := getOrderedFields(rType)
+					orderedFields, err := getOrderedFields(getFields(rType))
 					if (err != nil) != tc.wantErr {
 						t.Errorf("got unexpected error: %v", err)
 					}
-					if !maps.Equal(tags, tc.expected) {
-						t.Errorf("expected: %v, got: %v", tc.expected, tags)
+					if !maps.Equal(orderedFields, tc.expected) {
+						t.Errorf("expected: %v, got: %v", tc.expected, orderedFields)
 					}
 				})
 			}
