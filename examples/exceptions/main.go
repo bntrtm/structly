@@ -29,8 +29,8 @@ type applicationForm struct {
 	Country          string `smname:"Country"`
 	Location         string `smname:"Location (City)"`
 	CanTravel        bool   `smname:"Travel" smdes:"Can you travel for work?"`
-	BlacklistedField string `bl:""` //
-	BlacklistMe      int
+	BlacklistedField string `bl:""` // field blacklisted at the type level
+	BlacklistMe      int    // field to be blacklisted with an exception list
 }
 
 func main() {

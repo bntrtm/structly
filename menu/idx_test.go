@@ -16,14 +16,18 @@ func TestGetOrderedFields(t *testing.T) {
 
 	idxTestsIsolated := []idxTest{
 		{
-			name: "no idx validation returns empty with no error",
+			name: "no idx validation returns matching key-value pairs",
 			input: struct {
 				s string
 				i int
 				b bool
 			}{},
-			expected: map[int]int{},
-			wantErr:  false,
+			expected: map[int]int{
+				0: 0,
+				1: 1,
+				2: 2,
+			},
+			wantErr: false,
 		},
 		{
 			name: "idx validation returns indeces as specified per field",
@@ -81,6 +85,19 @@ func TestGetOrderedFields(t *testing.T) {
 		},
 	}
 	idxTestsWithBlacklistTag := []idxTest{
+		{
+			name: "no idx validation returns only bl-offset key-value pairs",
+			input: struct {
+				s string
+				i int `bl:""`
+				b bool
+			}{},
+			expected: map[int]int{
+				0: 0,
+				1: 2,
+			},
+			wantErr: false,
+		},
 		{
 			name: "idx validation skips bl-tagged field (first)",
 			input: struct {

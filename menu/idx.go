@@ -20,7 +20,9 @@ import (
 // If the first non-blacklisted field is found to have an `idx` tag,
 // all others will be expected to have one as well. Likewise, if it
 // does not have the tag, all others will be expected not to have the tag.
-// When no `idx` tags are used, the map keys and values will match.
+// When no `idx` tags are used, the map keys and values will match, unless
+// offset by 1 after and for each instance where a field is found to be
+// blacklisted with the `bl` tag.
 //
 // Where validation fails, a nil map and error are returned.
 func getOrderedFields(t reflect.Type) (map[int]int, error) {
@@ -30,6 +32,7 @@ func getOrderedFields(t reflect.Type) (map[int]int, error) {
 	}{val: false, isSet: false}
 
 	idxTagVals := map[int]int{}
+	blacklistCount := 0
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 
@@ -40,6 +43,7 @@ func getOrderedFields(t reflect.Type) (map[int]int, error) {
 			if isIndexed {
 				return nil, fmt.Errorf("incompatible struct tags; unexpected `idx` tag found on `bl`-tagged field %s", field.Name)
 			}
+			blacklistCount++
 			continue
 		}
 
@@ -61,15 +65,22 @@ func getOrderedFields(t reflect.Type) (map[int]int, error) {
 				return nil, fmt.Errorf("value %d for `idx` tag on field %s already assigned to another field", idx, field.Name)
 			}
 			idxTagVals[idx] = i
+
 		} else if isIndexed {
 			return nil, fmt.Errorf("unexpected `idx` tag found on field %s", field.Name)
+		} else {
+			idxTagVals[i-blacklistCount] = i
 		}
 
 	}
 
 	for i := 0; i < len(idxTagVals); i++ {
 		if _, ok := idxTagVals[i]; !ok {
-			return nil, fmt.Errorf("expected to find idx value of %d on some field, but found none", i)
+			if wantIdx.val {
+				return nil, fmt.Errorf("expected to find idx value of %d on some field, but found none", i)
+			}
+			return nil, fmt.Errorf("expected sequential indeces for map, but index %d is missing", i)
+
 		}
 	}
 
