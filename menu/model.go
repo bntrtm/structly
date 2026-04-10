@@ -70,21 +70,19 @@ func NewMenuWithOptions(structlyPtr any, options *MenuOptions, list ...string) (
 // generateNewMenu validates and creates a new struct menu from the given
 // parameters. If custom options are not provided, the menu will fall back
 // to defaults.
-func generateNewMenu(obj any, options *MenuOptions, exceptions ...string) (Model, error) {
-	// if fieldList is empty, all fields are exposed to users; otherwise, it is used as a whitelist.
-	// if bool parameter 'asBlacklist' is 'true', the fieldList is used as a blacklist instead of a whitelist.
+func generateNewMenu(ptr any, options *MenuOptions, exceptions ...string) (Model, error) {
 	m := Model{}
 
-	t := reflect.TypeOf(obj)
-	v := reflect.ValueOf(obj)
+	t := reflect.TypeOf(ptr)
+	v := reflect.ValueOf(ptr)
 	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 		v = v.Elem()
 	} else {
-		return m, fmt.Errorf("obj should be a pointer to struct, so as to have addressable fields")
+		return m, fmt.Errorf("ptr interface should be a pointer to a struct, so as to have addressable fields")
 	}
 	if t.Kind() != reflect.Struct {
-		return m, fmt.Errorf("input obj found not to be a struct")
+		return m, fmt.Errorf("input ptr found not to point to a struct")
 	}
 	m = Model{
 		menuFields: []menuField{},
