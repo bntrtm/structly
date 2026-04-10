@@ -24,6 +24,7 @@ type EndState struct {
 type Model struct {
 	// MENU STATE
 	// fields which can be edited; populated dynamically
+	data       structData
 	menuFields []menuField
 	options    MenuOptions
 	state      *state
@@ -85,6 +86,7 @@ func NewMenuWithOptions(structlyPtr any, options *MenuOptions, list ...string) (
 // are not provided, the menu will fall back to defaults.
 func generateNewMenu(v reflect.Value, options *MenuOptions, exceptions ...string) (Model, error) {
 	m := Model{
+		data:       structData{},
 		menuFields: []menuField{},
 		options:    *NewMenuOptions(),
 		state: &state{
@@ -95,14 +97,13 @@ func generateNewMenu(v reflect.Value, options *MenuOptions, exceptions ...string
 			QuitWithCancel: false,
 		},
 	}
+	m.data.init(v)
 
 	if options != nil {
 		m.options = *options
 	}
 
-	t := v.Type()
-	fields := getFields(t)
-	orderedFields, err := getOrderedFields(fields)
+	orderedFields, err := getOrderedFields(m.data.fields)
 	if err != nil {
 		return m, err
 	}
@@ -117,7 +118,7 @@ func generateNewMenu(v reflect.Value, options *MenuOptions, exceptions ...string
 		if !ok {
 			return m, fmt.Errorf("could not resolve struct field to display by declaration index %d", i)
 		}
-		field := fields[j]
+		field := m.data.fields[j]
 
 		if len(exceptions) != 0 {
 			switch exceptionListIndicator {

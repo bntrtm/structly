@@ -113,6 +113,28 @@ func (f *menuField) getFieldName() string {
 	return f.name
 }
 
+// structData holds onto values returned from
+// reflect calls related to the input interface.
+type structData struct {
+	v      reflect.Value
+	t      reflect.Type
+	fields map[int]*reflect.StructField
+	values map[int]*reflect.Value
+}
+
+func (d *structData) init(structValue reflect.Value) {
+	d.v = structValue
+	d.t = d.v.Type()
+	d.fields = getFields(d.t)
+
+	values := map[int]*reflect.Value{}
+	for i := 0; i < d.t.NumField(); i++ {
+		val := d.v.FieldByName(d.fields[i].Name)
+		values[i] = &val
+	}
+	d.values = values
+}
+
 // getFields returns a map of indeces to reflect.StructField pointers,
 // given a reflect.Type. It does not account for tags whatsoever.
 func getFields(t reflect.Type) map[int]*reflect.StructField {
