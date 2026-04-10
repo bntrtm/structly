@@ -74,9 +74,9 @@ If you aren't familiar with Charm's Bubble Tea package and their greater
 ecosystem, you can see the following resources
 for more information:
 
-- [Charm Bubble Tea](charm.land/bubbletea)
-- [Charm Bubbles](charm.land/bubbles)
-- [About Charm](charm.land/)
+- [Charm Bubble Tea](https://charm.land/bubbletea)
+- [Charm Bubbles](https://charm.land/bubbles)
+- [About Charm](https://charm.land/)
 
 ## Advanced Features
 
