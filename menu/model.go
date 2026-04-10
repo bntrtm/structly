@@ -137,7 +137,7 @@ func generateNewMenu(v reflect.Value, options *MenuOptions, exceptions ...string
 			}
 		}
 
-		fieldVal := v.FieldByName(field.Name)
+		fieldVal := m.data.values[j]
 		if !fieldVal.CanSet() {
 			log.Printf("Warning: Field '%s' left unexposed (cannot be set; unexported or not addressable).\n", field.Name)
 			continue
